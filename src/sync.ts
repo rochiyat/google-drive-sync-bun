@@ -28,15 +28,25 @@ const GOOGLE_EXPORT_MAP: Record<string, { mimeType: string; ext: string }> = {
 };
 
 /** Wraps a promise with a timeout — rejects if it takes too long */
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error(`Timeout after ${ms / 1000}s: ${label}`)),
       ms
     );
     promise
-      .then(val => { clearTimeout(timer); resolve(val); })
-      .catch(err => { clearTimeout(timer); reject(err); });
+      .then((val) => {
+        clearTimeout(timer);
+        resolve(val);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
   });
 }
 
@@ -149,7 +159,6 @@ export async function syncFolder(
       // Record in DB
       saveFile(file.id!, file.name!, local, file.modifiedTime || '');
       send?.(`${progress} ✅ ${file.name}`);
-
     } catch (error: any) {
       const msg = error?.message || String(error);
       send?.(`${progress} ❌ ERROR ${file.name}: ${msg}`);

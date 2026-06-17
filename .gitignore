@@ -37,6 +37,8 @@ logs/
 # Build artifacts
 dist/
 *.tsbuildinfo
+src/_html.gen.ts
+*.exe
 
 # file bat
 *.bat
