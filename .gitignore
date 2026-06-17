@@ -1,4 +1,42 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment & Secrets
 .env
+.env.local
+.env.*.local
 credential.json
+credentials.json
+*.pem
+*.key
+
+# Database
 sync.db
+sync.db-journal
+sync.db-wal
+
+# Downloads (synced files)
+downloads/
+
+# OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# file bat
+*.bat
