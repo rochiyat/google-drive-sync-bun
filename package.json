@@ -1,0 +1,19 @@
+{
+  "name": "drive-sync-bun",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@elysiajs/static": "latest",
+    "elysia": "latest",
+    "googleapis": "latest",
+    "fs-extra": "latest",
+    "dotenv": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}

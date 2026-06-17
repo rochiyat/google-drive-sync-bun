@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drive Sync — Backup Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg-primary:#0f0f1a;
+  --bg-secondary:#161625;
+  --bg-card:rgba(26,26,46,0.85);
+  --bg-input:#1e1e35;
+  --border:rgba(255,255,255,0.06);
+  --border-focus:rgba(99,102,241,0.5);
+  --text-primary:#e8e8f0;
+  --text-secondary:#8b8ba7;
+  --text-muted:#5a5a78;
+  --accent:#6366f1;
+  --accent-glow:rgba(99,102,241,0.25);
+  --success:#10b981;
+  --success-bg:rgba(16,185,129,0.1);
+  --warning:#f59e0b;
+  --warning-bg:rgba(245,158,11,0.1);
+  --error:#ef4444;
+  --error-bg:rgba(239,68,68,0.1);
+  --info:#3b82f6;
+  --info-bg:rgba(59,130,246,0.1);
+  --gradient-1:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%);
+  --gradient-2:linear-gradient(135deg,#0f0f1a 0%,#1a1a32 100%);
+}
+
+html,body{
+  height:100%;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  overflow-x:hidden;
+}
+
+/* Animated background orbs */
+body::before,body::after{
+  content:'';position:fixed;border-radius:50%;filter:blur(120px);opacity:0.15;
+  pointer-events:none;z-index:0;
+}
+body::before{
+  width:500px;height:500px;top:-100px;right:-100px;
+  background:radial-gradient(circle,#6366f1,transparent 70%);
+  animation:float 20s ease-in-out infinite;
+}
+body::after{
+  width:400px;height:400px;bottom:-50px;left:-50px;
+  background:radial-gradient(circle,#8b5cf6,transparent 70%);
+  animation:float 25s ease-in-out infinite reverse;
+}
+@keyframes float{
+  0%,100%{transform:translate(0,0)}
+  33%{transform:translate(30px,-30px)}
+  66%{transform:translate(-20px,20px)}
+}
+
+.container{
+  position:relative;z-index:1;
+  max-width:720px;margin:0 auto;
+  padding:40px 24px 60px;
+  min-height:100vh;
+}
+
+/* Header */
+.header{
+  text-align:center;margin-bottom:40px;
+}
+.header .logo{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:16px;
+  background:var(--gradient-1);
+  margin-bottom:16px;
+  box-shadow:0 8px 32px var(--accent-glow);
+}
+.header .logo svg{width:28px;height:28px;color:#fff}
+.header h1{
+  font-size:24px;font-weight:700;letter-spacing:-0.5px;
+  background:var(--gradient-1);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;
+}
+.header p{font-size:13px;color:var(--text-secondary)}
+
+/* Card */
+.card{
+  background:var(--bg-card);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--border);
+  border-radius:16px;padding:28px;
+  margin-bottom:20px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.2);
+  transition:border-color 0.3s;
+}
+.card:hover{border-color:rgba(255,255,255,0.1)}
+
+/* Form */
+.field{margin-bottom:20px}
+.field label{
+  display:block;font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--text-secondary);margin-bottom:8px;
+}
+.field input{
+  width:100%;padding:12px 16px;
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text-primary);font-size:14px;
+  font-family:inherit;
+  outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.field input:focus{
+  border-color:var(--border-focus);
+  box-shadow:0 0 0 3px var(--accent-glow);
+}
+.field input::placeholder{color:var(--text-muted)}
+
+/* Button */
+.btn-sync{
+  width:100%;padding:14px 24px;
+  border:none;border-radius:12px;cursor:pointer;
+  font-family:inherit;font-size:15px;font-weight:600;
+  color:#fff;
+  background:var(--gradient-1);
+  box-shadow:0 4px 16px var(--accent-glow);
+  transition:transform 0.15s,box-shadow 0.2s,opacity 0.2s;
+  position:relative;overflow:hidden;
+}
+.btn-sync:hover:not(:disabled){
+  transform:translateY(-1px);
+  box-shadow:0 8px 24px var(--accent-glow);
+}
+.btn-sync:active:not(:disabled){transform:translateY(0)}
+.btn-sync:disabled{opacity:0.5;cursor:not-allowed}
+
+/* Button shimmer animation */
+.btn-sync::after{
+  content:'';position:absolute;
+  top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  transition:none;
+}
+.btn-sync:not(:disabled):hover::after{
+  animation:shimmer 0.8s;
+}
+@keyframes shimmer{
+  0%{left:-100%}100%{left:100%}
+}
+
+/* Status Badge */
+.status{
+  display:none;align-items:center;gap:10px;
+  padding:12px 16px;border-radius:10px;
+  font-size:13px;font-weight:500;
+  margin-bottom:20px;
+  animation:slideIn 0.3s ease;
+}
+.status.visible{display:flex}
+.status .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.status.syncing{background:var(--warning-bg);color:var(--warning)}
+.status.syncing .dot{background:var(--warning);animation:pulse 1.5s infinite}
+.status.done{background:var(--success-bg);color:var(--success)}
+.status.done .dot{background:var(--success)}
+.status.error{background:var(--error-bg);color:var(--error)}
+.status.error .dot{background:var(--error)}
+.status.info{background:var(--info-bg);color:var(--info)}
+.status.info .dot{background:var(--info)}
+
+@keyframes pulse{
+  0%,100%{opacity:1}50%{opacity:0.3}
+}
+@keyframes slideIn{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* Progress bar */
+.progress-wrap{
+  display:none;margin-bottom:16px;
+}
+.progress-wrap.visible{display:block}
+.progress-bar-bg{
+  width:100%;height:6px;border-radius:3px;
+  background:var(--bg-input);overflow:hidden;
+}
+.progress-bar{
+  height:100%;border-radius:3px;
+  background:var(--gradient-1);
+  width:0%;
+  transition:width 0.4s ease;
+}
+.progress-label{
+  display:flex;justify-content:space-between;
+  margin-top:8px;font-size:12px;color:var(--text-secondary);
+}
+
+/* Stats row */
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  margin-bottom:20px;
+}
+.stat{
+  text-align:center;padding:14px 8px;
+  background:var(--bg-input);border-radius:10px;
+  border:1px solid var(--border);
+}
+.stat .value{
+  font-size:22px;font-weight:700;
+  background:var(--gradient-1);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;
+}
+.stat .label{
+  font-size:11px;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;
+}
+
+/* Log panel */
+.log-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:12px;
+}
+.log-header h3{font-size:14px;font-weight:600;color:var(--text-secondary)}
+.log-header button{
+  background:none;border:1px solid var(--border);
+  color:var(--text-muted);font-size:11px;
+  padding:4px 10px;border-radius:6px;cursor:pointer;
+  font-family:inherit;transition:all 0.2s;
+}
+.log-header button:hover{
+  border-color:var(--text-muted);color:var(--text-secondary);
+}
+
+.log-panel{
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px;
+  max-height:400px;
+  overflow-y:auto;
+  font-family:'Cascadia Code','Fira Code','JetBrains Mono',monospace;
+  font-size:12px;line-height:1.8;
+  color:var(--text-secondary);
+  scroll-behavior:smooth;
+}
+.log-panel::-webkit-scrollbar{width:6px}
+.log-panel::-webkit-scrollbar-track{background:transparent}
+.log-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+
+/* Log line coloring */
+.log-line{white-space:pre-wrap;word-break:break-all}
+.log-line.downloaded{color:#10b981}
+.log-line.skip{color:var(--text-muted)}
+.log-line.error{color:#ef4444}
+.log-line.info{color:#3b82f6}
+.log-line.folder{color:#a78bfa}
+.log-line.system{color:#f59e0b}
+.log-line.done{color:#10b981;font-weight:600}
+.log-line.fail{color:#ef4444;font-weight:600}
+
+/* Connection indicator */
+.connection{
+  position:fixed;top:16px;right:16px;
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text-muted);
+  padding:6px 12px;border-radius:20px;
+  background:var(--bg-card);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  z-index:100;
+}
+.connection .indicator{
+  width:6px;height:6px;border-radius:50%;
+}
+.connection.connected .indicator{background:var(--success)}
+.connection.disconnected .indicator{background:var(--error);animation:pulse 1s infinite}
+
+/* Responsive */
+@media(max-width:600px){
+  .container{padding:24px 16px 40px}
+  .card{padding:20px}
+  .stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .header h1{font-size:20px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="connection disconnected" id="conn">
+  <span class="indicator"></span>
+  <span id="connText">Connecting...</span>
+</div>
+
+<div class="container">
+
+  <div class="header">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
+      </svg>
+    </div>
+    <h1>Drive Sync</h1>
+    <p>Google Drive Backup Dashboard</p>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>Google Drive Folder</label>
+      <input id="folder" placeholder="Paste folder ID or full Google Drive URL..." autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Local Target Directory</label>
+      <input id="target" value="./downloads" placeholder="./downloads" autocomplete="off">
+    </div>
+    <button class="btn-sync" id="btn" onclick="start()">
+      Start Sync
+    </button>
+  </div>
+
+  <div class="status" id="status">
+    <span class="dot"></span>
+    <span id="statusText"></span>
+  </div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-label">
+      <span id="progressText">0 / 0</span>
+      <span id="progressPct">0%</span>
+    </div>
+  </div>
+
+  <div class="stats" id="statsRow" style="display:none">
+    <div class="stat">
+      <div class="value" id="statDownloaded">0</div>
+      <div class="label">Downloaded</div>
+    </div>
+    <div class="stat">
+      <div class="value" id="statSkipped">0</div>
+      <div class="label">Skipped</div>
+    </div>
+    <div class="stat">
+      <div class="value" id="statErrors">0</div>
+      <div class="label">Errors</div>
+    </div>
+  </div>
+
+  <div class="card" id="logCard" style="display:none">
+    <div class="log-header">
+      <h3>Activity Log</h3>
+      <button onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-panel" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+let ws;
+let syncing = false;
+let downloaded = 0, skipped = 0, errors = 0;
+let totalFiles = 0, currentFile = 0;
+
+function connectWs() {
+  ws = new WebSocket("ws://" + location.host + "/logs");
+  ws.onopen = () => {
+    setConnection(true);
+  };
+  ws.onclose = () => {
+    setConnection(false);
+    setTimeout(connectWs, 2000);
+  };
+  ws.onerror = () => {};
+  ws.onmessage = e => {
+    const msg = e.data;
+    handleMessage(msg);
+  };
+}
+
+function setConnection(connected) {
+  const el = document.getElementById("conn");
+  const txt = document.getElementById("connText");
+  if (connected) {
+    el.className = "connection connected";
+    txt.textContent = "Connected";
+  } else {
+    el.className = "connection disconnected";
+    txt.textContent = "Reconnecting...";
+  }
+}
+
+function handleMessage(msg) {
+  document.getElementById("logCard").style.display = "block";
+  document.getElementById("statsRow").style.display = "grid";
+
+  // Parse progress [X/Y]
+  const progressMatch = msg.match(/^\[(\d+)\/(\d+)\]/);
+  if (progressMatch) {
+    currentFile = parseInt(progressMatch[1]);
+    totalFiles = parseInt(progressMatch[2]);
+    updateProgress();
+  }
+
+  // Count stats
+  if (msg.includes("✅")) { downloaded++; }
+  else if (msg.includes("⏭")) { skipped++; }
+  else if (msg.includes("❌")) { errors++; }
+
+  updateStats();
+
+  // Determine log line class
+  let cls = "";
+  if (msg.includes("✅")) cls = "downloaded";
+  else if (msg.includes("⏭")) cls = "skip";
+  else if (msg.includes("❌") || msg.includes("[FAIL]")) cls = "error";
+  else if (msg.includes("📁")) cls = "folder";
+  else if (msg.startsWith("[INFO]")) cls = "info";
+  else if (msg.startsWith("[SYNC]") || msg.startsWith("[RETRY]")) cls = "system";
+  else if (msg.startsWith("[DONE]")) cls = "done";
+  else if (msg.startsWith("[ERROR]")) cls = "fail";
+
+  appendLog(msg, cls);
+
+  // Status updates
+  if (msg.startsWith("[DONE]")) {
+    setSyncing(false);
+    setStatus("done", "Sync completed successfully!");
+    updateProgress(100);
+  } else if (msg.startsWith("[ERROR]")) {
+    setSyncing(false);
+    setStatus("error", "All retry attempts failed");
+  } else if (msg.startsWith("[FAIL]")) {
+    setStatus("error", msg.replace("[FAIL] ", ""));
+  } else if (msg.startsWith("[RETRY]")) {
+    setStatus("syncing", msg.replace("[RETRY] ", ""));
+  } else if (msg.startsWith("[SYNC]")) {
+    setStatus("syncing", msg.replace("[SYNC] ", ""));
+  }
+}
+
+function appendLog(msg, cls) {
+  const log = document.getElementById("log");
+  const div = document.createElement("div");
+  div.className = "log-line" + (cls ? " " + cls : "");
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function updateProgress(overridePct) {
+  const wrap = document.getElementById("progressWrap");
+  wrap.classList.add("visible");
+  const pct = overridePct !== undefined ? overridePct : (totalFiles > 0 ? Math.round((currentFile / totalFiles) * 100) : 0);
+  document.getElementById("progressBar").style.width = pct + "%";
+  document.getElementById("progressText").textContent = currentFile + " / " + totalFiles;
+  document.getElementById("progressPct").textContent = pct + "%";
+}
+
+function updateStats() {
+  document.getElementById("statDownloaded").textContent = downloaded;
+  document.getElementById("statSkipped").textContent = skipped;
+  document.getElementById("statErrors").textContent = errors;
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById("status");
+  el.className = "status visible " + type;
+  document.getElementById("statusText").textContent = msg;
+}
+
+function setSyncing(val) {
+  syncing = val;
+  const btn = document.getElementById("btn");
+  btn.disabled = val;
+  btn.textContent = val ? "Syncing..." : "Start Sync";
+}
+
+function clearLog() {
+  document.getElementById("log").innerHTML = "";
+}
+
+async function start() {
+  if (syncing) return;
+
+  // Reset counters
+  downloaded = 0; skipped = 0; errors = 0;
+  currentFile = 0; totalFiles = 0;
+  updateStats();
+  clearLog();
+
+  setSyncing(true);
+  setStatus("syncing", "Initializing sync...");
+  document.getElementById("logCard").style.display = "block";
+  document.getElementById("statsRow").style.display = "grid";
+  document.getElementById("progressWrap").classList.add("visible");
+  document.getElementById("progressBar").style.width = "0%";
+
+  await fetch("/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      folderId: document.getElementById("folder").value,
+      target: document.getElementById("target").value
+    })
+  });
+}
+
+connectWs();
+</script>
+
+</body>
+</html>
