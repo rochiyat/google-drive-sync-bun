@@ -1,70 +1,61 @@
 /**
- * Standalone entry point — compiled into a single .exe
+ * Standalone entry point — compiled into a single executable (.exe / mac binary)
  *
  * Differences from src/index.ts:
  *  - HTML is embedded (no @elysiajs/static needed)
- *  - Resolves credential.json relative to exe location
+ *  - Resolves paths relative to exe location
  *  - Auto-opens browser on startup
  *  - Shows helpful console banner
- *  - Creates .env with defaults if not present
+ *  - Supports both Google OAuth 2.0 and Service Account
  */
 import { Elysia } from "elysia";
 import { syncFolder } from "./sync";
+import { authPlugin, getAuthenticatedOAuth2Client, hasServiceAccount } from "./auth";
 import { HTML } from "./_html.gen";
 import fs from "fs";
 import path from "path";
 
 // ── Resolve paths relative to exe location ──
 const APP_DIR = path.dirname(process.execPath || process.argv[0]);
+try {
+  process.chdir(APP_DIR);
+} catch {
+  // Ignore
+}
+process.env.DB_PATH = path.join(APP_DIR, "sync.db");
 
 // ── Auto-create .env with defaults if missing ──
 const envPath = path.join(APP_DIR, ".env");
 if (!fs.existsSync(envPath)) {
-  fs.writeFileSync(envPath, "PORT=3000\nGOOGLE_CREDENTIAL=credential.json\n");
+  fs.writeFileSync(
+    envPath,
+    "PORT=3000\n# GOOGLE_OAUTH_CLIENT_ID=\n# GOOGLE_OAUTH_CLIENT_SECRET=\n# GOOGLE_CREDENTIAL=credential.json\n"
+  );
 }
 
 // ── Load .env manually (no dotenv dependency needed) ──
-const envContent = fs.readFileSync(envPath, "utf-8");
-for (const line of envContent.split("\n")) {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith("#")) continue;
-  const eqIdx = trimmed.indexOf("=");
-  if (eqIdx > 0) {
-    const key = trimmed.slice(0, eqIdx).trim();
-    const val = trimmed.slice(eqIdx + 1).trim();
-    if (!process.env[key]) process.env[key] = val;
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, "utf-8");
+  for (const line of envContent.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx > 0) {
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
   }
 }
 
-// ── Resolve credential path ──
+// ── Resolve credential path if specified ──
 const credFile = process.env.GOOGLE_CREDENTIAL || "credential.json";
 const credPath = path.isAbsolute(credFile) ? credFile : path.join(APP_DIR, credFile);
-process.env.GOOGLE_CREDENTIAL = credPath;
-
-// ── Check credential exists ──
-if (!fs.existsSync(credPath)) {
-  console.log("");
-  console.log("══════════════════════════════════════════════════");
-  console.log("  ❌  credential.json tidak ditemukan!");
-  console.log("══════════════════════════════════════════════════");
-  console.log("");
-  console.log("  Letakkan file credential.json di folder:");
-  console.log(`  ${APP_DIR}`);
-  console.log("");
-  console.log("  Cara mendapatkan credential:");
-  console.log("  1. Buka https://console.cloud.google.com");
-  console.log("  2. Buat Service Account → Download JSON key");
-  console.log("  3. Enable Google Drive API");
-  console.log("  4. Share folder Drive ke email service account");
-  console.log("");
-  console.log("  Tekan Enter untuk keluar...");
-
-  // Wait for Enter on Windows
-  process.stdin.resume();
-  process.stdin.once("data", () => process.exit(1));
-} else {
-  startServer();
+if (fs.existsSync(credPath)) {
+  process.env.GOOGLE_CREDENTIAL = credPath;
 }
+
+startServer();
 
 function startServer() {
   const PORT = Number(process.env.PORT || 3000);
@@ -80,6 +71,9 @@ function startServer() {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     })
+
+    // Mount Auth Plugin
+    .use(authPlugin)
 
     .ws("/logs", {
       open(ws) {
@@ -126,15 +120,25 @@ function startServer() {
 
     .listen(PORT);
 
+  // ── Determine Auth Status for Banner ──
+  const isOAuth = Boolean(getAuthenticatedOAuth2Client());
+  const hasSA = hasServiceAccount();
+  let authStatusText = "Belum login (Buka dashboard untuk login Google)";
+  if (isOAuth) {
+    authStatusText = "Terhubung via Google OAuth";
+  } else if (hasSA) {
+    authStatusText = `Service Account aktif (${path.basename(credPath)})`;
+  }
+
   // ── Console banner ──
   console.log("");
   console.log("══════════════════════════════════════════════════");
   console.log("  🔄  Drive Sync — Google Drive Backup Tool");
   console.log("══════════════════════════════════════════════════");
   console.log("");
-  console.log(`  🌐  Dashboard:  http://localhost:${PORT}`);
-  console.log(`  📁  App folder: ${APP_DIR}`);
-  console.log(`  🔐  Credential: ${credPath}`);
+  console.log(`  🌐  Dashboard:     http://localhost:${PORT}`);
+  console.log(`  📁  App folder:    ${APP_DIR}`);
+  console.log(`  🔐  Autentikasi:   ${authStatusText}`);
   console.log("");
   console.log("  Jangan tutup window ini selama sync berjalan.");
   console.log("  Tekan Ctrl+C untuk menghentikan server.");

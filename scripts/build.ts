@@ -1,16 +1,18 @@
 /**
- * Build script — generates standalone Windows executable
+ * Build script — generates standalone executables for Windows and macOS
  *
- * Usage: bun run build
- *
- * Steps:
- *  1. Reads public/index.html and embeds it into src/_html.gen.ts
- *  2. Compiles src/standalone.ts into dist/drive-sync.exe
+ * Usage:
+ *   bun run build         (builds Windows and macOS)
+ *   bun run build --win   (Windows only)
+ *   bun run build --mac   (macOS only)
  */
 import fs from "fs";
 import path from "path";
 
 const ROOT = path.resolve(import.meta.dir, "..");
+const args = process.argv.slice(2);
+const buildWin = args.length === 0 || args.includes("--win") || args.includes("--all");
+const buildMac = args.length === 0 || args.includes("--mac") || args.includes("--all");
 
 // ── Step 1: Embed HTML ──
 console.log("📦 Embedding HTML...");
@@ -21,58 +23,129 @@ const genPath = path.join(ROOT, "src", "_html.gen.ts");
 fs.writeFileSync(genPath, generated);
 console.log("   ✅ Generated src/_html.gen.ts");
 
-// ── Step 2: Compile ──
-console.log("⚙️  Compiling standalone executable...");
 const distDir = path.join(ROOT, "dist");
 fs.mkdirSync(distDir, { recursive: true });
+const cacheDir = path.join(ROOT, ".cache");
 
-const proc = Bun.spawnSync(
-  [
+// Helper to compile a target
+function compileTarget(targetName: string, targetArg: string, outfile: string, cachedBinName?: string) {
+  console.log(`⚙️  Compiling for ${targetName}...`);
+  const cmd = [
     "bun", "build",
     "--compile",
+    "--target=" + targetArg,
     path.join(ROOT, "src", "standalone.ts"),
-    "--outfile", path.join(distDir, "drive-sync.exe"),
-  ],
-  { cwd: ROOT, stdout: "inherit", stderr: "inherit" }
-);
+    "--outfile", path.join(distDir, outfile),
+  ];
 
-if (proc.exitCode !== 0) {
-  console.error("❌ Build failed");
-  process.exit(1);
+  if (cachedBinName) {
+    const cachedBin = path.join(cacheDir, cachedBinName);
+    if (fs.existsSync(cachedBin)) {
+      cmd.push(`--compile-executable-path=${cachedBin}`);
+    }
+  }
+
+  const proc = Bun.spawnSync(cmd, { cwd: ROOT, stdout: "inherit", stderr: "inherit" });
+  if (proc.exitCode !== 0) {
+    console.error(`❌ Build failed for ${targetName}`);
+    process.exit(1);
+  }
+  console.log(`   ✅ Created ${outfile}`);
 }
 
-// ── Step 3: Copy .env.example ──
+// ── Step 2: Compile Windows ──
+if (buildWin) {
+  compileTarget("Windows (x64)", "bun-windows-x64", "drive-sync.exe");
+}
+
+// ── Step 3: Compile macOS ──
+if (buildMac) {
+  compileTarget("macOS Apple Silicon (ARM64 / M-series)", "bun-darwin-arm64", "drive-sync-macos-arm64", "bun-darwin-arm64");
+  compileTarget("macOS Intel (x64)", "bun-darwin-x64", "drive-sync-macos-x64", "bun-darwin-x64");
+
+  // Create start-mac.command launcher
+  const macLauncher = `#!/bin/bash
+DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+cd "$DIR"
+
+echo "=================================================="
+echo "  🔄  Drive Sync — Launching on macOS..."
+echo "=================================================="
+
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+  BIN="./drive-sync-macos-arm64"
+else
+  BIN="./drive-sync-macos-x64"
+fi
+
+if [ ! -f "$BIN" ]; then
+  echo "❌ Error: File $BIN tidak ditemukan di folder ini."
+  read -p "Tekan [Enter] untuk keluar..."
+  exit 1
+fi
+
+chmod +x "$BIN" 2>/dev/null
+xattr -d com.apple.quarantine "$BIN" 2>/dev/null
+"$BIN"
+`;
+  // Ensure Unix LF endings
+  fs.writeFileSync(path.join(distDir, "start-mac.command"), macLauncher.replace(/\r\n/g, "\n"), { mode: 0o755 });
+  console.log("   ✅ Generated start-mac.command");
+}
+
+// ── Step 4: Copy .env.example ──
 fs.copyFileSync(
   path.join(ROOT, ".env.example"),
   path.join(distDir, ".env.example")
 );
 
-// ── Step 4: Create README for distribution ──
+// ── Step 5: Create README for distribution ──
 const distReadme = `# Drive Sync — Quick Start
 
-## Setup (3 langkah)
+Aplikasi pencadangan otomatis Google Drive ke penyimpanan lokal.
 
-### 1. Siapkan Credential
-Letakkan file \`credential.json\` (Google Service Account) di folder yang sama dengan \`drive-sync.exe\`.
+## Persiapan (Setup)
+
+### 1. Siapkan Credential Google Drive
+Letakkan file \`credential.json\` (Google Service Account key) di folder yang sama dengan aplikasi ini.
 
 Cara mendapatkan credential:
-- Buka https://console.cloud.google.com
-- Buat Service Account → Download JSON key
-- Enable Google Drive API
-- Share folder Google Drive Anda ke email service account
+1. Buka https://console.cloud.google.com
+2. Buat Service Account -> Download file key JSON -> rename jadi \`credential.json\`
+3. Aktifkan (Enable) "Google Drive API" di console
+4. Buka folder Google Drive yang ingin di-sync -> Share ke alamat email Service Account
 
 ### 2. (Opsional) Konfigurasi .env
-Rename \`.env.example\` menjadi \`.env\` jika ingin mengubah port atau nama file credential.
+Rename \`.env.example\` menjadi \`.env\` jika ingin mengubah PORT (default: 3000) atau nama file credential.
 
-### 3. Jalankan
-Double-click \`drive-sync.exe\` — browser akan terbuka otomatis.
+---
 
-Paste URL folder Google Drive → klik Start Sync.
+## Cara Menjalankan
+
+### Di Windows:
+- Cukup double-click \`drive-sync.exe\`
+- Browser akan terbuka otomatis di http://localhost:3000
+- Jika muncul peringatan "Windows protected your PC (SmartScreen)", klik More info -> Run anyway.
+
+### Di macOS:
+- Double-click file \`start-mac.command\`
+  (Script ini otomatis mendeteksi chip Apple Silicon M1-M4 atau Intel, lalu menjalankan binary yang cocok).
+- Browser akan terbuka otomatis di http://localhost:3000
+
+*Catatan untuk Mac:*
+Jika muncul peringatan keamanan macOS ("cannot be opened because it is from an unidentified developer"):
+1. Buka System Settings -> Privacy & Security -> scroll ke bawah -> klik "Open Anyway".
+2. Atau via Terminal:
+   chmod +x start-mac.command drive-sync-macos-*
+   ./start-mac.command
+
+---
 
 ## Troubleshooting
-- Jika muncul Windows Defender SmartScreen, klik "More info" → "Run anyway"
-- Pastikan \`credential.json\` ada di folder yang sama dengan exe
-- Pastikan folder Google Drive di-share ke email service account
+- Pastikan file \`credential.json\` berada di folder yang sama dengan aplikasi.
+- Pastikan folder di Google Drive sudah dibagikan (share) ke email Service Account dengan akses minimal Viewer.
+- Jangan tutup jendela terminal/command prompt selama proses sinkronisasi sedang berjalan.
 `;
 
 fs.writeFileSync(path.join(distDir, "README.txt"), distReadme);
@@ -80,9 +153,3 @@ fs.writeFileSync(path.join(distDir, "README.txt"), distReadme);
 console.log("");
 console.log("🎉 Build complete!");
 console.log(`   📁 Output: ${distDir}`);
-console.log("   📄 Files:");
-console.log("      • drive-sync.exe");
-console.log("      • .env.example");
-console.log("      • README.txt");
-console.log("");
-console.log("   ℹ️  User hanya perlu meletakkan credential.json di folder yang sama lalu double-click exe.");

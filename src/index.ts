@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { syncFolder } from "./sync";
+import { authPlugin } from "./auth";
 import "dotenv/config";
 
 const clients = new Set<any>();
@@ -14,6 +15,8 @@ const app = new Elysia()
     assets: "public",
     prefix: ""
   }))
+
+  .use(authPlugin)
 
   .ws("/logs", {
     open(ws) {
@@ -58,4 +61,4 @@ const app = new Elysia()
 
   .listen(Number(process.env.PORT || 3000));
 
-console.log("running http://localhost:3000");
+console.log(`running http://localhost:${process.env.PORT || 3000}`);

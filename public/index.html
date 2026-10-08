@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNiIgZmlsbD0iIzM4YmRmOCIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEyIDEyKSBzY2FsZSgwLjg1KSB0cmFuc2xhdGUoLTEyIC0xMikiPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0xMiAxNi41VjkuNzVtMCAwbDMgM20tMy0zbC0zIDNNNi43NSAxOS41YTQuNSA0LjUgMCAwMS0xLjQxLTguNzc1IDUuMjUgNS4yNSAwIDAxMTAuMjMzLTIuMzMgMyAzIDAgMDEzLjc1OCAzLjg0OEEzLjc1MiAzLjc1MiAwIDAxMTggMTkuNUg2Ljc1eiIvPjwvZz48L3N2Zz4=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 
@@ -42,7 +42,6 @@ html,body{
   line-height:1.6;
 }
 
-/* Subtle noise texture */
 body::before{
   content:'';
   position:fixed;
@@ -65,7 +64,7 @@ body::before{
 /* Header */
 .header{
   text-align:center;
-  margin-bottom:56px;
+  margin-bottom:40px;
 }
 .header .logo{
   display:inline-flex;
@@ -107,8 +106,150 @@ body::before{
 }
 .card:hover{
   border-color:rgba(255,255,255,0.12);
-  transform:translateY(-2px);
   box-shadow:0 12px 48px rgba(0,0,0,0.4);
+}
+
+/* Auth Section */
+.auth-box{
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px 24px;
+  margin-bottom:28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  transition:all 0.3s;
+}
+.auth-box:hover{
+  border-color:rgba(255,255,255,0.14);
+}
+.auth-user{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.auth-avatar{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  border:2px solid var(--accent);
+  object-fit:cover;
+  background:var(--border);
+}
+.auth-avatar-fallback{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:var(--accent-glow);
+  color:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:18px;
+}
+.auth-info h4{
+  font-size:14px;
+  font-weight:600;
+  color:var(--text-primary);
+  margin-bottom:2px;
+}
+.auth-info p{
+  font-size:12px;
+  color:var(--text-secondary);
+}
+.auth-info .badge-active{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:var(--success);
+  font-weight:500;
+}
+.auth-info .badge-active::before{
+  content:'';
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--success);
+}
+.auth-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.btn-secondary{
+  padding:8px 16px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text-secondary);
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all 0.2s;
+  font-family:inherit;
+}
+.btn-secondary:hover{
+  border-color:rgba(255,255,255,0.2);
+  color:var(--text-primary);
+  background:rgba(255,255,255,0.05);
+}
+
+.auth-unauthenticated{
+  display:block;
+  text-align:left;
+  padding:24px;
+}
+.auth-unauthenticated h4{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text-primary);
+  margin-bottom:6px;
+}
+.auth-unauthenticated p{
+  font-size:13px;
+  color:var(--text-secondary);
+  margin-bottom:18px;
+  line-height:1.5;
+}
+.auth-cta-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+/* Google Sign-In Button */
+.btn-google{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:12px 22px;
+  border-radius:12px;
+  background:#ffffff;
+  color:#1f1f1f;
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:14px;
+  font-weight:600;
+  border:none;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.btn-google:hover{
+  background:#f3f4f6;
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.35);
+}
+.btn-google svg{
+  width:18px;
+  height:18px;
+  flex-shrink:0;
 }
 
 /* Form */
@@ -314,7 +455,6 @@ body::before{
 .log-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
 .log-panel::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
 
-/* Log line coloring */
 .log-line{white-space:pre-wrap;word-break:break-all}
 .log-line.downloaded{color:#22c55e}
 .log-line.skip{color:var(--text-muted)}
@@ -353,13 +493,74 @@ body::before{
 .connection.connected .indicator{background:var(--success)}
 .connection.disconnected .indicator{background:var(--error);animation:pulse 1.2s infinite}
 
-/* Responsive */
+/* Modal */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+  padding:20px;
+}
+.modal-backdrop.open{display:flex}
+.modal{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:32px;
+  max-width:520px;
+  width:100%;
+  box-shadow:0 16px 48px rgba(0,0,0,0.6);
+  position:relative;
+}
+.modal h3{
+  font-family:'Space Grotesk',system-ui;
+  font-size:20px;
+  color:var(--accent);
+  margin-bottom:10px;
+}
+.modal p{
+  font-size:13px;
+  color:var(--text-secondary);
+  line-height:1.5;
+  margin-bottom:20px;
+}
+.modal .step-help{
+  background:var(--bg-input);
+  border-radius:12px;
+  padding:14px 18px;
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.6;
+  margin-bottom:20px;
+  border:1px solid var(--border);
+}
+.modal .step-help ol{
+  margin-left:18px;
+}
+.modal .step-help code{
+  background:rgba(255,255,255,0.08);
+  padding:2px 6px;
+  border-radius:4px;
+  color:var(--accent);
+}
+.modal-buttons{
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  margin-top:24px;
+}
+
 @media(max-width:640px){
   .container{padding:40px 20px 60px}
   .card{padding:28px}
   .stats{grid-template-columns:repeat(3,1fr);gap:10px}
   .header h1{font-size:26px}
   .stat .value{font-size:24px}
+  .auth-box{padding:18px}
 }
 </style>
 </head>
@@ -380,13 +581,22 @@ body::before{
       </svg>
     </div>
     <h1>Drive Sync</h1>
-    <p>Professional Google Drive Backup Dashboard</p>
+    <p>Google Drive Backup Dashboard</p>
   </div>
 
   <div class="card">
+
+    <!-- Auth Container -->
+    <div id="authContainer">
+      <div class="auth-box" style="justify-content:center;padding:24px">
+        <span style="font-size:13px;color:var(--text-muted)">Memeriksa status akun...</span>
+      </div>
+    </div>
+
+    <!-- Sync Fields -->
     <div class="field">
       <label>Google Drive Folder</label>
-      <input id="folder" placeholder="Paste folder ID or full Google Drive URL..." autocomplete="off">
+      <input id="folder" placeholder="Paste link folder Drive atau folder ID..." autocomplete="off">
     </div>
     <div class="field">
       <label>Local Target Directory</label>
@@ -437,26 +647,56 @@ body::before{
 
 </div>
 
+<!-- OAuth Settings Modal -->
+<div class="modal-backdrop" id="configModal">
+  <div class="modal">
+    <h3>Konfigurasi Google OAuth</h3>
+    <p>Masukkan Google OAuth 2.0 Client ID & Secret untuk menghubungkan login Google langsung dari aplikasi.</p>
+
+    <div class="step-help">
+      <ol>
+        <li>Buka <b>Google Cloud Console</b> → Credentials</li>
+        <li>Buat OAuth Client ID (Type: <code>Web application</code> atau <code>Desktop app</code>)</li>
+        <li>Tambahkan Redirect URI: <br><code>http://localhost:3000/auth/callback</code></li>
+        <li>Salin Client ID & Client Secret ke bawah ini:</li>
+      </ol>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <label>Client ID</label>
+      <input id="modalClientId" placeholder="xxx.apps.googleusercontent.com" autocomplete="off">
+    </div>
+    <div class="field" style="margin-bottom:16px">
+      <label>Client Secret</label>
+      <input id="modalClientSecret" type="password" placeholder="GOCSPX-..." autocomplete="off">
+    </div>
+
+    <div class="modal-buttons">
+      <button class="btn-secondary" onclick="closeConfigModal()">Batal</button>
+      <button class="btn-secondary" style="background:var(--accent);color:#000;font-weight:600;border:none" onclick="saveOAuthConfig()">
+        Simpan & Login
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 let ws;
 let syncing = false;
 let downloaded = 0, skipped = 0, errors = 0;
 let totalFiles = 0, currentFile = 0;
+let authState = { authenticated: false, mode: 'none', oauthConfigured: false, user: null };
 
+// ── WebSocket Connection ──
 function connectWs() {
   ws = new WebSocket("ws://" + location.host + "/logs");
-  ws.onopen = () => {
-    setConnection(true);
-  };
+  ws.onopen = () => { setConnection(true); };
   ws.onclose = () => {
     setConnection(false);
     setTimeout(connectWs, 2000);
   };
   ws.onerror = () => {};
-  ws.onmessage = e => {
-    const msg = e.data;
-    handleMessage(msg);
-  };
+  ws.onmessage = e => { handleMessage(e.data); };
 }
 
 function setConnection(connected) {
@@ -471,11 +711,153 @@ function setConnection(connected) {
   }
 }
 
+// ── Auth Handling ──
+async function checkAuthStatus() {
+  try {
+    const res = await fetch("/auth/status");
+    authState = await res.json();
+    renderAuthUI();
+  } catch (err) {
+    console.error("Gagal memeriksa status auth:", err);
+  }
+}
+
+function renderAuthUI() {
+  const container = document.getElementById("authContainer");
+
+  if (authState.mode === "oauth" && authState.authenticated) {
+    const user = authState.user || {};
+    const name = user.name || "Pengguna Google";
+    const email = user.email || "";
+    const avatar = user.picture;
+
+    const avatarHtml = avatar
+      ? `<img class="auth-avatar" src="${avatar}" alt="avatar" referrerpolicy="no-referrer">`
+      : `<div class="auth-avatar-fallback">${name.charAt(0).toUpperCase()}</div>`;
+
+    container.innerHTML = `
+      <div class="auth-box">
+        <div class="auth-user">
+          ${avatarHtml}
+          <div class="auth-info">
+            <h4>${name}</h4>
+            <p>${email ? `${email} • ` : ""}<span class="badge-active">Terhubung</span></p>
+          </div>
+        </div>
+        <div class="auth-actions">
+          <button class="btn-secondary" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    `;
+  } else if (authState.mode === "service_account") {
+    container.innerHTML = `
+      <div class="auth-box">
+        <div class="auth-user">
+          <div class="auth-avatar-fallback">🔑</div>
+          <div class="auth-info">
+            <h4>Service Account</h4>
+            <p>Menggunakan credential.json • <span class="badge-active">Aktif</span></p>
+          </div>
+        </div>
+        <div class="auth-actions">
+          <button class="btn-secondary" onclick="handleGoogleSignIn()">Ganti ke Login Google</button>
+        </div>
+      </div>
+    `;
+  } else {
+    // Not authenticated
+    container.innerHTML = `
+      <div class="auth-box auth-unauthenticated">
+        <h4>Masuk dengan Akun Google</h4>
+        <p>Hubungkan akun Google Anda untuk mengakses folder dan file Google Drive langsung ke komputer.</p>
+        <div class="auth-cta-row">
+          <button class="btn-google" onclick="handleGoogleSignIn()">
+            <svg viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Sign in with Google
+          </button>
+          <button class="btn-secondary" onclick="openConfigModal()">⚙️ Atur OAuth Client</button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function handleGoogleSignIn() {
+  if (!authState.oauthConfigured) {
+    openConfigModal();
+    return;
+  }
+  openOAuthPopup();
+}
+
+function openOAuthPopup() {
+  const width = 520, height = 680;
+  const left = window.screen.width / 2 - width / 2;
+  const top = window.screen.height / 2 - height / 2;
+  const popup = window.open("/auth/login", "google_oauth_popup", `width=${width},height=${height},top=${top},left=${left}`);
+
+  if (!popup || popup.closed || typeof popup.closed === "undefined") {
+    // Popup was blocked by browser
+    window.location.href = "/auth/login";
+  }
+}
+
+window.addEventListener("message", (event) => {
+  if (event.data?.type === "OAUTH_AUTH_SUCCESS") {
+    checkAuthStatus();
+    setStatus("done", "Login Google berhasil!");
+  }
+});
+
+async function logout() {
+  if (!confirm("Apakah Anda yakin ingin logout?")) return;
+  await fetch("/auth/logout", { method: "POST" });
+  await checkAuthStatus();
+  setStatus("info", "Berhasil logout.");
+}
+
+function openConfigModal() {
+  document.getElementById("configModal").classList.add("open");
+}
+
+function closeConfigModal() {
+  document.getElementById("configModal").classList.remove("open");
+}
+
+async function saveOAuthConfig() {
+  const clientId = document.getElementById("modalClientId").value.trim();
+  const clientSecret = document.getElementById("modalClientSecret").value.trim();
+
+  if (!clientId || !clientSecret) {
+    alert("Harap masukkan Client ID dan Client Secret.");
+    return;
+  }
+
+  const res = await fetch("/auth/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId, clientSecret })
+  });
+  const data = await res.json();
+  if (data.success) {
+    closeConfigModal();
+    authState.oauthConfigured = true;
+    openOAuthPopup();
+  } else {
+    alert(data.message || "Gagal menyimpan konfigurasi OAuth.");
+  }
+}
+
+// ── Log and Progress Handling ──
 function handleMessage(msg) {
   document.getElementById("logCard").style.display = "block";
   document.getElementById("statsRow").style.display = "grid";
 
-  // Parse progress [X/Y]
   const progressMatch = msg.match(/^\[(\d+)\/(\d+)\]/);
   if (progressMatch) {
     currentFile = parseInt(progressMatch[1]);
@@ -483,14 +865,12 @@ function handleMessage(msg) {
     updateProgress();
   }
 
-  // Count stats
   if (msg.includes("✅")) { downloaded++; }
   else if (msg.includes("⏭")) { skipped++; }
   else if (msg.includes("❌")) { errors++; }
 
   updateStats();
 
-  // Determine log line class
   let cls = "";
   if (msg.includes("✅")) cls = "downloaded";
   else if (msg.includes("⏭")) cls = "skip";
@@ -503,7 +883,6 @@ function handleMessage(msg) {
 
   appendLog(msg, cls);
 
-  // Status updates
   if (msg.startsWith("[DONE]")) {
     setSyncing(false);
     setStatus("done", "Sync completed successfully!");
@@ -564,6 +943,19 @@ function clearLog() {
 async function start() {
   if (syncing) return;
 
+  const folderVal = document.getElementById("folder").value.trim();
+  if (!folderVal) {
+    setStatus("error", "Silakan masukkan URL atau ID folder Google Drive.");
+    document.getElementById("folder").focus();
+    return;
+  }
+
+  if (!authState.authenticated) {
+    setStatus("error", "Silakan login dengan Google terlebih dahulu.");
+    handleGoogleSignIn();
+    return;
+  }
+
   // Reset counters
   downloaded = 0; skipped = 0; errors = 0;
   currentFile = 0; totalFiles = 0;
@@ -577,17 +969,29 @@ async function start() {
   document.getElementById("progressWrap").classList.add("visible");
   document.getElementById("progressBar").style.width = "0%";
 
-  await fetch("/sync", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      folderId: document.getElementById("folder").value,
-      target: document.getElementById("target").value
-    })
-  });
+  try {
+    const res = await fetch("/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folderId: folderVal,
+        target: document.getElementById("target").value.trim()
+      })
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      setStatus("error", "Gagal memulai sync: " + err);
+      setSyncing(false);
+    }
+  } catch (err) {
+    setStatus("error", "Koneksi ke server terputus: " + err.message);
+    setSyncing(false);
+  }
 }
 
+// ── Init ──
 connectWs();
+checkAuthStatus();
 </script>
 
 </body>

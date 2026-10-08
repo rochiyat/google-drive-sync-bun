@@ -42,3 +42,6 @@ src/_html.gen.ts
 
 # file bat
 *.bat
+
+# Build cache
+.cache/
