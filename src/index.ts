@@ -23,6 +23,11 @@ const app = new Elysia()
     return await pickFolder(body?.currentPath);
   })
 
+  .post("/api/exit", () => {
+    setTimeout(() => process.exit(0), 400);
+    return { success: true };
+  })
+
   .ws("/logs", {
     open(ws) {
       clients.add(ws);

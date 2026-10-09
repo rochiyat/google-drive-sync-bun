@@ -4,15 +4,16 @@
  * Differences from src/index.ts:
  *  - HTML is embedded (no @elysiajs/static needed)
  *  - Resolves paths relative to exe location
- *  - Auto-opens browser on startup
- *  - Shows helpful console banner
+ *  - Auto-opens app window on startup
  *  - Supports both Google OAuth 2.0 and Service Account
  *  - Supports native OS folder picker dialog
+ *  - Auto-shuts down when window is closed
  */
 import { Elysia } from "elysia";
 import { syncFolder } from "./sync";
 import { authPlugin, getAuthenticatedOAuth2Client, hasServiceAccount } from "./auth";
 import { pickFolder } from "./dialog";
+import { launchAppWindow } from "./window";
 import { HTML } from "./_html.gen";
 import fs from "fs";
 import path from "path";
@@ -65,6 +66,9 @@ function startServer() {
   const MAX_RETRIES = 3;
   const RETRY_DELAY_MS = 5000;
 
+  let clientEverConnected = false;
+  let disconnectTimer: any = null;
+
   const app = new Elysia()
 
     // Serve embedded HTML
@@ -82,12 +86,32 @@ function startServer() {
       return await pickFolder(body?.currentPath);
     })
 
+    // Exit API
+    .post("/api/exit", () => {
+      setTimeout(() => process.exit(0), 400);
+      return { success: true };
+    })
+
     .ws("/logs", {
       open(ws) {
+        clientEverConnected = true;
+        if (disconnectTimer) {
+          clearTimeout(disconnectTimer);
+          disconnectTimer = null;
+        }
         clients.add(ws);
       },
       close(ws) {
         clients.delete(ws);
+        if (clientEverConnected && clients.size === 0) {
+          // If no window/tab open for 45s, auto-shutdown server
+          disconnectTimer = setTimeout(() => {
+            if (clients.size === 0) {
+              console.log("No active clients. Exiting...");
+              process.exit(0);
+            }
+          }, 45000);
+        }
       },
     })
 
@@ -151,21 +175,10 @@ function startServer() {
   console.log("  Tekan Ctrl+C untuk menghentikan server.");
   console.log("");
 
-  // ── Auto-open browser ──
+  // ── Auto-open dedicated app window ──
   try {
-    const opener =
-      process.platform === "win32"
-        ? "start"
-        : process.platform === "darwin"
-          ? "open"
-          : "xdg-open";
-
-    if (process.platform === "win32") {
-      Bun.spawn(["cmd", "/c", "start", `http://localhost:${PORT}`]);
-    } else {
-      Bun.spawn([opener, `http://localhost:${PORT}`]);
-    }
+    launchAppWindow(`http://localhost:${PORT}`);
   } catch {
-    // Silently ignore if browser can't open
+    // Silently ignore if window can't open
   }
 }

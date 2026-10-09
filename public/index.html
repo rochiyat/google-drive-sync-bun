@@ -504,11 +504,17 @@ body::before{
 .log-line.done{color:#22c55e;font-weight:600}
 .log-line.fail{color:#ef4444;font-weight:600}
 
-/* Connection indicator */
-.connection{
+/* Top Nav & Connection indicator */
+.top-nav{
   position:fixed;
   top:20px;
   right:20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  z-index:100;
+}
+.connection{
   display:flex;
   align-items:center;
   gap:8px;
@@ -520,7 +526,6 @@ body::before{
   backdrop-filter:blur(16px);
   -webkit-backdrop-filter:blur(16px);
   border:1px solid var(--border);
-  z-index:100;
   transition:all 0.3s;
 }
 .connection:hover{border-color:rgba(255,255,255,0.12)}
@@ -531,6 +536,29 @@ body::before{
 }
 .connection.connected .indicator{background:var(--success)}
 .connection.disconnected .indicator{background:var(--error);animation:pulse 1.2s infinite}
+
+.btn-exit{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  color:var(--text-muted);
+  padding:8px 14px;
+  border-radius:24px;
+  background:var(--bg-card);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--border);
+  cursor:pointer;
+  font-family:inherit;
+  transition:all 0.3s;
+}
+.btn-exit:hover{
+  border-color:var(--error);
+  color:var(--error);
+  background:var(--error-bg);
+}
+
 
 /* Modal */
 .modal-backdrop{
@@ -608,9 +636,17 @@ body::before{
 
 <body>
 
-<div class="connection disconnected" id="conn">
-  <span class="indicator"></span>
-  <span id="connText">Connecting...</span>
+<div class="top-nav">
+  <div class="connection disconnected" id="conn">
+    <span class="indicator"></span>
+    <span id="connText">Connecting...</span>
+  </div>
+  <button class="btn-exit" onclick="exitApp()" title="Keluar dan tutup aplikasi">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+    </svg>
+    <span>Tutup</span>
+  </button>
 </div>
 
 <div class="container">
@@ -1069,6 +1105,20 @@ async function browseFolder() {
     btn.disabled = false;
     btn.innerHTML = origHtml;
   }
+}
+
+async function exitApp() {
+  if (!confirm("Tutup aplikasi Drive Sync?")) return;
+  try {
+    await fetch("/api/exit", { method: "POST" });
+  } catch {}
+  document.body.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:sans-serif;color:#a1a1aa;text-align:center;padding:24px">
+      <h2 style="color:#f5f5f7;margin-bottom:10px;font-size:22px">Aplikasi Telah Ditutup</h2>
+      <p style="font-size:14px">Server telah dihentikan. Anda dapat menutup jendela ini sekarang.</p>
+    </div>
+  `;
+  setTimeout(() => window.close(), 600);
 }
 
 // ── Init ──

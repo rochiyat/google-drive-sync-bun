@@ -1,5 +1,5 @@
 /**
- * Build script — generates standalone executables for Windows and macOS
+ * Build script — generates standalone executables & desktop app packages for Windows and macOS
  *
  * Usage:
  *   bun run build         (builds Windows and macOS)
@@ -26,6 +26,8 @@ console.log("   ✅ Generated src/_html.gen.ts");
 const distDir = path.join(ROOT, "dist");
 fs.mkdirSync(distDir, { recursive: true });
 const cacheDir = path.join(ROOT, ".cache");
+const iconIco = path.join(ROOT, "assets", "icon.ico");
+const iconPng = path.join(ROOT, "assets", "icon.png");
 
 // Helper to compile a target
 function compileTarget(targetName: string, targetArg: string, outfile: string, cachedBinName?: string) {
@@ -37,6 +39,17 @@ function compileTarget(targetName: string, targetArg: string, outfile: string, c
     path.join(ROOT, "src", "standalone.ts"),
     "--outfile", path.join(distDir, outfile),
   ];
+
+  if (targetArg === "bun-windows-x64") {
+    cmd.push("--windows-hide-console");
+    if (fs.existsSync(iconIco)) {
+      cmd.push(`--windows-icon=${iconIco}`);
+    }
+    cmd.push("--windows-title=Drive Sync");
+    cmd.push("--windows-publisher=Drive Sync");
+    cmd.push("--windows-description=Google Drive Backup Tool");
+    cmd.push("--windows-version=1.0.0");
+  }
 
   if (cachedBinName) {
     const cachedBin = path.join(cacheDir, cachedBinName);
@@ -55,7 +68,31 @@ function compileTarget(targetName: string, targetArg: string, outfile: string, c
 
 // ── Step 2: Compile Windows ──
 if (buildWin) {
-  compileTarget("Windows (x64)", "bun-windows-x64", "drive-sync.exe");
+  compileTarget("Windows (x64, GUI Window, No Console)", "bun-windows-x64", "drive-sync.exe");
+
+  // Create Windows Desktop Shortcut Setup Script
+  const winSetupBat = `@echo off
+setlocal
+cd /d "%~dp0"
+echo ==================================================
+echo   Drive Sync - Membuat Shortcut di Desktop
+echo ==================================================
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ws = New-Object -ComObject WScript.Shell; " ^
+  "$s = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), 'Drive Sync.lnk')); " ^
+  "$s.TargetPath = [System.IO.Path]::Combine('%~dp0', 'drive-sync.exe'); " ^
+  "$s.WorkingDirectory = '%~dp0'; " ^
+  "$s.IconLocation = [System.IO.Path]::Combine('%~dp0', 'drive-sync.exe') + ',0'; " ^
+  "$s.Description = 'Drive Sync - Google Drive Backup Tool'; " ^
+  "$s.Save()"
+echo.
+echo [OK] Shortcut 'Drive Sync' berhasil dibuat di Desktop Anda!
+echo Anda sekarang bisa membuka aplikasi langsung dari icon di Desktop.
+echo.
+pause
+`;
+  fs.writeFileSync(path.join(distDir, "setup-shortcut-windows.bat"), winSetupBat.replace(/\n/g, "\r\n"));
+  console.log("   ✅ Generated setup-shortcut-windows.bat");
 }
 
 // ── Step 3: Compile macOS ──
@@ -89,63 +126,120 @@ chmod +x "$BIN" 2>/dev/null
 xattr -d com.apple.quarantine "$BIN" 2>/dev/null
 "$BIN"
 `;
-  // Ensure Unix LF endings
   fs.writeFileSync(path.join(distDir, "start-mac.command"), macLauncher.replace(/\r\n/g, "\n"), { mode: 0o755 });
   console.log("   ✅ Generated start-mac.command");
+
+  // Create macOS App Bundle: "Drive Sync.app"
+  const macAppDir = path.join(distDir, "Drive Sync.app");
+  const macAppContents = path.join(macAppDir, "Contents");
+  const macAppMacOS = path.join(macAppContents, "MacOS");
+  const macAppResources = path.join(macAppContents, "Resources");
+
+  fs.mkdirSync(macAppMacOS, { recursive: true });
+  fs.mkdirSync(macAppResources, { recursive: true });
+
+  // Copy icon
+  if (fs.existsSync(iconPng)) {
+    fs.copyFileSync(iconPng, path.join(macAppResources, "icon.png"));
+  }
+
+  // Info.plist
+  const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>Drive Sync</string>
+  <key>CFBundleIconFile</key>
+  <string>icon.png</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.drivesync.app</string>
+  <key>CFBundleName</key>
+  <string>Drive Sync</string>
+  <key>CFBundleDisplayName</key>
+  <string>Drive Sync</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0.0</string>
+  <key>CFBundleVersion</key>
+  <string>1.0.0</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.15</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+</dict>
+</plist>
+`;
+  fs.writeFileSync(path.join(macAppContents, "Info.plist"), plistContent);
+
+  // App launcher script
+  const appScript = `#!/bin/bash
+DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+BUNDLE_DIR="$( cd "$DIR/../../.." && pwd )"
+cd "$BUNDLE_DIR"
+
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+  BIN="$BUNDLE_DIR/drive-sync-macos-arm64"
+else
+  BIN="$BUNDLE_DIR/drive-sync-macos-x64"
+fi
+
+if [ -f "$BIN" ]; then
+  chmod +x "$BIN" 2>/dev/null
+  xattr -d com.apple.quarantine "$BIN" 2>/dev/null
+  "$BIN"
+fi
+`;
+  fs.writeFileSync(path.join(macAppMacOS, "Drive Sync"), appScript.replace(/\r\n/g, "\n"), { mode: 0o755 });
+  console.log("   ✅ Generated Drive Sync.app");
 }
 
-// ── Step 4: Copy .env.example ──
+// ── Step 4: Copy Assets & Config ──
 fs.copyFileSync(
   path.join(ROOT, ".env.example"),
   path.join(distDir, ".env.example")
 );
 
+if (fs.existsSync(iconPng)) {
+  fs.copyFileSync(iconPng, path.join(distDir, "icon.png"));
+}
+if (fs.existsSync(iconIco)) {
+  fs.copyFileSync(iconIco, path.join(distDir, "icon.ico"));
+}
+
 // ── Step 5: Create README for distribution ──
-const distReadme = `# Drive Sync — Quick Start
+const distReadme = `# Drive Sync — Desktop Backup Tool
 
-Aplikasi pencadangan otomatis Google Drive ke penyimpanan lokal.
-
-## Persiapan (Setup)
-
-### 1. Siapkan Credential Google Drive
-Letakkan file \`credential.json\` (Google Service Account key) di folder yang sama dengan aplikasi ini.
-
-Cara mendapatkan credential:
-1. Buka https://console.cloud.google.com
-2. Buat Service Account -> Download file key JSON -> rename jadi \`credential.json\`
-3. Aktifkan (Enable) "Google Drive API" di console
-4. Buka folder Google Drive yang ingin di-sync -> Share ke alamat email Service Account
-
-### 2. (Opsional) Konfigurasi .env
-Rename \`.env.example\` menjadi \`.env\` jika ingin mengubah PORT (default: 3000) atau nama file credential.
+Aplikasi pencadangan otomatis Google Drive ke komputer lokal dengan antarmuka desktop modern.
 
 ---
 
 ## Cara Menjalankan
 
 ### Di Windows:
-- Cukup double-click \`drive-sync.exe\`
-- Browser akan terbuka otomatis di http://localhost:3000
-- Jika muncul peringatan "Windows protected your PC (SmartScreen)", klik More info -> Run anyway.
+1. Double-click \`drive-sync.exe\`
+   - Aplikasi langsung membuka jendela desktop mandiri tanpa jendela Command Prompt / Terminal hitam.
+2. (Opsional) Double-click \`setup-shortcut-windows.bat\` untuk membuat icon shortcut "Drive Sync" di Desktop Anda.
 
 ### Di macOS:
-- Double-click file \`start-mac.command\`
-  (Script ini otomatis mendeteksi chip Apple Silicon M1-M4 atau Intel, lalu menjalankan binary yang cocok).
-- Browser akan terbuka otomatis di http://localhost:3000
-
-*Catatan untuk Mac:*
-Jika muncul peringatan keamanan macOS ("cannot be opened because it is from an unidentified developer"):
-1. Buka System Settings -> Privacy & Security -> scroll ke bawah -> klik "Open Anyway".
-2. Atau via Terminal:
-   chmod +x start-mac.command drive-sync-macos-*
-   ./start-mac.command
+- Double-click \`Drive Sync.app\` (atau \`start-mac.command\`).
+- Aplikasi otomatis mendeteksi chip Apple Silicon (M1/M2/M3/M4) atau Intel.
 
 ---
 
-## Troubleshooting
-- Pastikan file \`credential.json\` berada di folder yang sama dengan aplikasi.
-- Pastikan folder di Google Drive sudah dibagikan (share) ke email Service Account dengan akses minimal Viewer.
-- Jangan tutup jendela terminal/command prompt selama proses sinkronisasi sedang berjalan.
+## Fitur & Cara Pakai
+
+1. **Login dengan Akun Google**:
+   - Klik tombol **"Sign in with Google"** di dashboard.
+   - Tidak perlu repot membuat file kredensial manual.
+2. **Pilih Folder Tujuan**:
+   - Klik tombol **"📁 Pilih Folder..."** untuk membuka File Explorer / Finder.
+3. **Mulai Backup**:
+   - Masukkan link folder Google Drive lalu klik **"Start Sync"**.
+4. **Menutup Aplikasi**:
+   - Klik tombol **"Tutup"** di pojok kanan atas dashboard atau tutup jendela aplikasi. Server akan berhenti secara otomatis.
 `;
 
 fs.writeFileSync(path.join(distDir, "README.txt"), distReadme);
