@@ -282,6 +282,45 @@ body::before{
 }
 .field input::placeholder{color:var(--text-muted)}
 
+/* Input with Browse Button */
+.input-with-button{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.input-with-button input{
+  flex:1;
+}
+.btn-browse{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:16px 20px;
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:14px;
+  color:var(--text-primary);
+  font-family:inherit;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.btn-browse:hover:not(:disabled){
+  border-color:var(--accent);
+  color:var(--accent);
+  background:rgba(56,189,248,0.08);
+  transform:translateY(-2px);
+}
+.btn-browse:active:not(:disabled){transform:translateY(0)}
+.btn-browse:disabled{opacity:0.6;cursor:not-allowed}
+.spin-icon{animation:spin 1s linear infinite}
+@keyframes spin{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+
 /* Button */
 .btn-sync{
   width:100%;
@@ -561,6 +600,8 @@ body::before{
   .header h1{font-size:26px}
   .stat .value{font-size:24px}
   .auth-box{padding:18px}
+  .input-with-button{flex-direction:column;align-items:stretch}
+  .btn-browse{justify-content:center}
 }
 </style>
 </head>
@@ -600,7 +641,15 @@ body::before{
     </div>
     <div class="field">
       <label>Local Target Directory</label>
-      <input id="target" value="./downloads" placeholder="./downloads" autocomplete="off">
+      <div class="input-with-button">
+        <input id="target" value="./downloads" placeholder="Pilih folder tujuan atau ketik path..." autocomplete="off">
+        <button type="button" class="btn-browse" id="btnBrowse" onclick="browseFolder()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <span>Pilih Folder...</span>
+        </button>
+      </div>
     </div>
     <button class="btn-sync" id="btn" onclick="start()">
       Start Sync
@@ -986,6 +1035,39 @@ async function start() {
   } catch (err) {
     setStatus("error", "Koneksi ke server terputus: " + err.message);
     setSyncing(false);
+  }
+}
+
+async function browseFolder() {
+  const btn = document.getElementById("btnBrowse");
+  const targetInput = document.getElementById("target");
+  const origHtml = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="spin-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+      <path d="M12 2a10 10 0 0110 10" stroke-linecap="round"/>
+    </svg>
+    <span>Membuka...</span>
+  `;
+
+  try {
+    const res = await fetch("/api/pick-folder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPath: targetInput.value.trim() })
+    });
+    const data = await res.json();
+    if (data && data.path) {
+      targetInput.value = data.path;
+      targetInput.focus();
+    }
+  } catch (err) {
+    console.error("Gagal memilih folder:", err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
   }
 }
 

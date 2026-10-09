@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { syncFolder } from "./sync";
 import { authPlugin } from "./auth";
+import { pickFolder } from "./dialog";
 import "dotenv/config";
 
 const clients = new Set<any>();
@@ -17,6 +18,10 @@ const app = new Elysia()
   }))
 
   .use(authPlugin)
+
+  .post("/api/pick-folder", async ({ body }: any) => {
+    return await pickFolder(body?.currentPath);
+  })
 
   .ws("/logs", {
     open(ws) {

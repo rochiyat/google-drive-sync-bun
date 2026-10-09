@@ -7,10 +7,12 @@
  *  - Auto-opens browser on startup
  *  - Shows helpful console banner
  *  - Supports both Google OAuth 2.0 and Service Account
+ *  - Supports native OS folder picker dialog
  */
 import { Elysia } from "elysia";
 import { syncFolder } from "./sync";
 import { authPlugin, getAuthenticatedOAuth2Client, hasServiceAccount } from "./auth";
+import { pickFolder } from "./dialog";
 import { HTML } from "./_html.gen";
 import fs from "fs";
 import path from "path";
@@ -74,6 +76,11 @@ function startServer() {
 
     // Mount Auth Plugin
     .use(authPlugin)
+
+    // Mount Native Folder Picker API
+    .post("/api/pick-folder", async ({ body }: any) => {
+      return await pickFolder(body?.currentPath);
+    })
 
     .ws("/logs", {
       open(ws) {
