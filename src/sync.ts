@@ -79,6 +79,13 @@ async function assertFolderAccessible(drive: any, folderId: string) {
     meta = (res as any).data;
   } catch (error: any) {
     const status = error?.code ?? error?.response?.status;
+    const reason = error?.errors?.[0]?.reason;
+    // A disabled Drive API is also a 403, but sharing the folder won't fix it.
+    if (reason === 'accessNotConfigured' || /has not been used in project|is disabled/i.test(error?.message || '')) {
+      throw new FolderAccessError(
+        `Google Drive API belum aktif di project Google Cloud milik credential ini. ${error.message}`
+      );
+    }
     if (status === 404 || status === 403) {
       const email = await currentAccountEmail(drive);
       throw new FolderAccessError(
