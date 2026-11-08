@@ -974,7 +974,7 @@ function handleMessage(msg) {
     updateProgress(100);
   } else if (msg.startsWith("[ERROR]")) {
     setSyncing(false);
-    setStatus("error", "All retry attempts failed");
+    setStatus("error", msg.replace("[ERROR] ", ""));
   } else if (msg.startsWith("[FAIL]")) {
     setStatus("error", msg.replace("[FAIL] ", ""));
   } else if (msg.startsWith("[RETRY]")) {

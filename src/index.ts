@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
-import { syncFolder } from "./sync";
+import { syncFolder, FolderAccessError } from "./sync";
 import { authPlugin } from "./auth";
 import { pickFolder } from "./dialog";
 import "dotenv/config";
@@ -53,6 +53,11 @@ const app = new Elysia()
           return; // success, no retry needed
         } catch (err: any) {
           const errorMsg = err?.message || String(err);
+          if (err instanceof FolderAccessError) {
+            send(`[ERROR] ${errorMsg}`);
+            return; // retrying won't fix access/permission problems
+          }
+
           send(`[FAIL] Sync crashed: ${errorMsg}`);
 
           if (attempt < MAX_RETRIES) {

@@ -50,16 +50,69 @@ function withTimeout<T>(
   });
 }
 
+/** Not retryable: the folder is missing or the current account can't see it. */
+export class FolderAccessError extends Error {}
+
+async function currentAccountEmail(drive: any): Promise<string> {
+  try {
+    const res = await drive.about.get({ fields: 'user(emailAddress)' });
+    return res.data.user?.emailAddress || 'akun tidak diketahui';
+  } catch {
+    return 'akun tidak diketahui';
+  }
+}
+
+// Drive returns an empty list (not an error) for folders the account can't
+// access, so check the root folder explicitly before listing.
+async function assertFolderAccessible(drive: any, folderId: string) {
+  let meta: any;
+  try {
+    const res = await withTimeout(
+      drive.files.get({
+        fileId: folderId,
+        fields: 'id,name,mimeType',
+        supportsAllDrives: true,
+      }),
+      60_000,
+      'files.get'
+    );
+    meta = (res as any).data;
+  } catch (error: any) {
+    const status = error?.code ?? error?.response?.status;
+    if (status === 404 || status === 403) {
+      const email = await currentAccountEmail(drive);
+      throw new FolderAccessError(
+        `Folder ${folderId} tidak ditemukan atau tidak bisa diakses oleh ${email}. ` +
+          `Share folder tersebut ke email ini (minimal Viewer), atau login dengan akun pemilik folder.`
+      );
+    }
+    throw error;
+  }
+
+  if (meta.mimeType !== 'application/vnd.google-apps.folder') {
+    throw new FolderAccessError(
+      `"${meta.name}" bukan folder Google Drive. Masukkan URL atau ID folder.`
+    );
+  }
+  return meta;
+}
+
 export async function syncFolder(
   folderIdInput: string,
   target: string,
-  send?: (msg: string) => void
+  send?: (msg: string) => void,
+  isRoot = true
 ) {
   const folderId =
     folderIdInput.match(/\/folders\/([a-zA-Z0-9-_]+)/)?.[1] ||
     folderIdInput.trim();
 
   const drive = await driveClient();
+
+  if (isRoot) {
+    const meta = await assertFolderAccessible(drive, folderId);
+    send?.(`[INFO] Folder: ${meta.name}`);
+  }
 
   fs.mkdirSync(target, { recursive: true });
 
@@ -74,6 +127,8 @@ export async function syncFolder(
         fields: 'nextPageToken, files(id,name,mimeType,modifiedTime)',
         pageSize: 1000,
         pageToken: pageToken,
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
       }),
       60_000,
       'files.list'
@@ -99,7 +154,7 @@ export async function syncFolder(
       // ── Subfolder: recurse ──
       if (file.mimeType === 'application/vnd.google-apps.folder') {
         send?.(`${progress} 📁 FOLDER ${file.name}`);
-        await syncFolder(file.id!, local, send);
+        await syncFolder(file.id!, local, send, false);
         continue;
       }
 
@@ -144,7 +199,7 @@ export async function syncFolder(
       } else {
         const res = await withTimeout(
           drive.files.get(
-            { fileId: file.id!, alt: 'media' },
+            { fileId: file.id!, alt: 'media', supportsAllDrives: true },
             { responseType: 'arraybuffer' }
           ),
           FILE_TIMEOUT_MS,
