@@ -50,6 +50,38 @@ function withTimeout<T>(
   });
 }
 
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
+
+/** Drive allows any character in names; the local filesystem doesn't. */
+export function sanitizeName(name: string): string {
+  let out = name
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/[. ]+$/, '')
+    .trim();
+  if (!out) out = '_';
+  if (WINDOWS_RESERVED.test(out)) out = `_${out}`;
+  return out;
+}
+
+/** Drive error bodies arrive as an ArrayBuffer when responseType is arraybuffer. */
+function driveErrorReason(error: any): { reason?: string; message?: string } {
+  let body = error?.response?.data;
+  try {
+    if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
+      body = JSON.parse(Buffer.from(body as ArrayBuffer).toString('utf8'));
+    } else if (typeof body === 'string') {
+      body = JSON.parse(body);
+    }
+  } catch {
+    body = undefined;
+  }
+  const err = body?.error;
+  return {
+    reason: err?.errors?.[0]?.reason ?? error?.errors?.[0]?.reason,
+    message: err?.message,
+  };
+}
+
 /** Not retryable: the folder is missing or the current account can't see it. */
 export class FolderAccessError extends Error {}
 
@@ -131,7 +163,8 @@ export async function syncFolder(
     const result = await withTimeout(
       drive.files.list({
         q: `'${folderId}' in parents and trashed=false`,
-        fields: 'nextPageToken, files(id,name,mimeType,modifiedTime)',
+        fields:
+          'nextPageToken, files(id,name,mimeType,modifiedTime,exportLinks,capabilities/canDownload)',
         pageSize: 1000,
         pageToken: pageToken,
         supportsAllDrives: true,
@@ -156,7 +189,7 @@ export async function syncFolder(
     const progress = `[${i + 1}/${files.length}]`;
 
     try {
-      let local = path.join(target, file.name!);
+      let local = path.join(target, sanitizeName(file.name!));
 
       // ── Subfolder: recurse ──
       if (file.mimeType === 'application/vnd.google-apps.folder') {
@@ -184,6 +217,11 @@ export async function syncFolder(
         local += exportConfig.ext;
       }
 
+      if (file.capabilities?.canDownload === false) {
+        send?.(`${progress} ⏭ SKIP (download dinonaktifkan pemilik) ${file.name}`);
+        continue;
+      }
+
       // Already up-to-date
       if (isUpToDate(file.id!, file.modifiedTime || '')) {
         send?.(`${progress} ⏭ SKIP ${file.name}`);
@@ -194,15 +232,30 @@ export async function syncFolder(
       let data: ArrayBuffer | Buffer;
 
       if (exportConfig) {
-        const res = await withTimeout(
-          drive.files.export(
-            { fileId: file.id!, mimeType: exportConfig.mimeType },
-            { responseType: 'arraybuffer' }
-          ),
-          FILE_TIMEOUT_MS,
-          `export ${file.name}`
-        );
-        data = res.data as ArrayBuffer;
+        try {
+          const res = await withTimeout(
+            drive.files.export(
+              { fileId: file.id!, mimeType: exportConfig.mimeType },
+              { responseType: 'arraybuffer' }
+            ),
+            FILE_TIMEOUT_MS,
+            `export ${file.name}`
+          );
+          data = res.data as ArrayBuffer;
+        } catch (error: any) {
+          // files.export caps output at 10MB; exportLinks don't have that cap.
+          const link = file.exportLinks?.[exportConfig.mimeType];
+          if (driveErrorReason(error).reason !== 'exportSizeLimitExceeded' || !link) {
+            throw error;
+          }
+          const auth = (drive as any).context._options.auth;
+          const res = await withTimeout(
+            auth.request({ url: link, responseType: 'arraybuffer' }),
+            FILE_TIMEOUT_MS,
+            `export (large) ${file.name}`
+          );
+          data = (res as any).data as ArrayBuffer;
+        }
       } else {
         const res = await withTimeout(
           drive.files.get(
@@ -222,7 +275,14 @@ export async function syncFolder(
       saveFile(file.id!, file.name!, local, file.modifiedTime || '');
       send?.(`${progress} ✅ ${file.name}`);
     } catch (error: any) {
-      const msg = error?.message || String(error);
+      const { reason, message } = driveErrorReason(error);
+      let msg = message || error?.message || String(error);
+      if (reason === 'exportSizeLimitExceeded') {
+        msg = 'File terlalu besar untuk di-export oleh Google (batas 10MB)';
+      } else if (reason === 'cannotDownloadFile' || reason === 'cannotExportFile') {
+        msg = 'Pemilik file menonaktifkan download/export untuk akun ini';
+      }
+      if (reason) msg += ` [${reason}]`;
       send?.(`${progress} ❌ ERROR ${file.name}: ${msg}`);
       // Continue to next file — never crash the loop
     }
